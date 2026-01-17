@@ -1,0 +1,46 @@
+[gd_scene load_steps=8 format=3 uid="uid://bgqx32wbuvonr"]
+
+[ext_resource type="Material" uid="uid://c8gxoaql0y7pq" path="res://icon.tres" id="1_fj7yv"]
+[ext_resource type="PackedScene" uid="uid://dyib8m7r105y2" path="res://player.tscn" id="2_fj7yv"]
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_fj7yv"]
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_tlwt5"]
+noise = SubResource("FastNoiseLite_fj7yv")
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_aqk2v"]
+sky_top_color = Color(0, 0.462855, 0.770701, 1)
+sky_horizon_color = Color(0.742795, 0.750589, 0.762896, 1)
+sky_cover = SubResource("NoiseTexture2D_tlwt5")
+
+[sub_resource type="Sky" id="Sky_036b0"]
+sky_material = SubResource("ProceduralSkyMaterial_aqk2v")
+
+[sub_resource type="Environment" id="Environment_dwbse"]
+background_mode = 2
+sky = SubResource("Sky_036b0")
+
+[node name="world" type="Node3D"]
+
+[node name="CSGCombiner3D" type="CSGCombiner3D" parent="."]
+use_collision = true
+
+[node name="CSGBox3D" type="CSGBox3D" parent="CSGCombiner3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+size = Vector3(100, 1, 100)
+material = ExtResource("1_fj7yv")
+
+[node name="CSGBox3D2" type="CSGBox3D" parent="CSGCombiner3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 2.5, -15.5)
+size = Vector3(15, 5, 1)
+material = ExtResource("1_fj7yv")
+
+[node name="CSGBox3D3" type="CSGBox3D" parent="CSGCombiner3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 15.5, 0.5)
+size = Vector3(10, 1, 20)
+material = ExtResource("1_fj7yv")
+
+[node name="player" parent="." instance=ExtResource("2_fj7yv")]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_dwbse")
