@@ -36,10 +36,11 @@ var RADIAN_TO_DEGREE = (180.0 / PI)
 
 
 ### Camera ###
-func move_towards_zero(initial: Vector3, difference: Vector3) -> Vector3:
-    difference = difference.clamp(-initial.abs(), initial.abs())
-    difference *= ((difference.sign() * initial.sign()).clampf(-1.0, 0.0) * -1)
-    return difference
+# Scale difference such that initial - difference does not cross 0 (in any axis)
+func scale_difference(initial: Vector3, difference: Vector3) -> Vector3:
+    var negative = -initial.max(Vector3.ZERO)
+    var positive = -initial.min(Vector3.ZERO)
+    return difference.clamp(negative, positive)
 
 @onready var camera : Camera3D = $Camera3D
 var look_rotation = Vector3.ZERO
@@ -54,14 +55,14 @@ func _input(event: InputEvent) -> void:
         var raw_input = -event.screen_relative / Vector2(get_window().size) * 3
         look_input = Vector3(raw_input.y, raw_input.x, 0.0)
         
-        var recoil_correction = move_towards_zero(recoil_rotation, look_input)
+        var recoil_correction = scale_difference(recoil_rotation, look_input)
         recoil_rotation += recoil_correction
         
         var look_step = look_input - recoil_correction
         look_rotation += look_step
         look_rotation.x = clampf(look_rotation.x, deg_to_rad(-90.0), deg_to_rad(90.0)) # Good!
         
-        target_recoil_rotation += move_towards_zero(target_recoil_rotation, look_input)
+        target_recoil_rotation += scale_difference(target_recoil_rotation, look_input)
 
 
 ### Movement ###
@@ -132,7 +133,7 @@ func fire():
 
 func recoil():
     # Define direction based on unit circle
-    var direction = deg_to_rad(90)
+    var direction = deg_to_rad(110)
     var direction_stddev = deg_to_rad(12) # 10%
     direction = randfn(direction, direction_stddev)
     var magnitude = 1.0 / 10.0
