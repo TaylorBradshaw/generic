@@ -115,7 +115,7 @@ func process_recoil(delta: float) -> void:
     if target_recoil_rotation == Vector3.ZERO and recoil_rotation == Vector3.ZERO:
         return
     # Move target recoil towards zero
-    var recoil_return_speed = target_recoil_rotation * delta #TODO: this value affects the recoil magnitude limit, very strange
+    var recoil_return_speed = 6 * delta #TODO: this value affects the recoil magnitude limit, very strange
     target_recoil_rotation -= target_recoil_rotation * recoil_return_speed
     # Move recoil rotation towards target recoil
     var snappiness = delta * 24
