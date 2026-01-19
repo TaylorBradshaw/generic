@@ -28,6 +28,7 @@ func _ready() -> void:
     debug_recoil_rotation.add_child(sphere(Color.RED))
     debug_head.add_child(debug_target_rotation)
     debug_target_rotation.add_child(sphere(Color.YELLOW))
+    #debug_head.visible = false
 
 
 ### Constants
@@ -116,7 +117,8 @@ func process_recoil(delta: float) -> void:
         return
     # Move target recoil towards zero
     var recoil_return_speed = 6 * delta #TODO: this value affects the recoil magnitude limit, very strange
-    target_recoil_rotation -= target_recoil_rotation * recoil_return_speed
+    if can_fire:
+        target_recoil_rotation -= target_recoil_rotation * recoil_return_speed
     # Move recoil rotation towards target recoil
     var snappiness = delta * 24
     recoil_rotation = lerp(recoil_rotation, target_recoil_rotation, snappiness)
