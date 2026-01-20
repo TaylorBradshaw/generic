@@ -15,6 +15,7 @@ func sphere(color: Color) -> MeshInstance3D:
 var debug_head = Node3D.new()
 var debug_camera_rotation = Node3D.new()
 var debug_recoil_rotation = Node3D.new()
+var debug_last_rotation = Node3D.new()
 var debug_target_rotation = Node3D.new()
 
 func _ready() -> void:
@@ -26,6 +27,8 @@ func _ready() -> void:
     debug_camera_rotation.add_child(sphere(Color.GREEN))
     debug_head.add_child(debug_recoil_rotation)
     debug_recoil_rotation.add_child(sphere(Color.RED))
+    debug_head.add_child(debug_last_rotation)
+    debug_last_rotation.add_child(sphere(Color.ORANGE))
     debug_head.add_child(debug_target_rotation)
     debug_target_rotation.add_child(sphere(Color.YELLOW))
     #debug_head.visible = false
@@ -47,6 +50,7 @@ func scale_difference(initial: Vector3, difference: Vector3) -> Vector3:
 var look_rotation = Vector3.ZERO
 
 var target_recoil_rotation = Vector3.ZERO
+var last_recoil_rotation = Vector3.ZERO
 var recoil_rotation = Vector3.ZERO
 var camera_recoil_rotation = Vector3.ZERO
 var look_input = Vector3.ZERO
@@ -61,7 +65,7 @@ func _input(event: InputEvent) -> void:
         
         var look_step = look_input - recoil_correction
         look_rotation += look_step
-        look_rotation.x = clampf(look_rotation.x, deg_to_rad(-90.0), deg_to_rad(90.0)) # Good!
+        look_rotation.x = clampf(look_rotation.x, deg_to_rad(-90.0), deg_to_rad(90.0))
         
         target_recoil_rotation += scale_difference(target_recoil_rotation, look_input)
 
@@ -95,6 +99,7 @@ func _physics_process(delta: float) -> void:
 ### Main Loop ###
 func _process(delta: float) -> void:
     if Input.is_action_pressed("fire"):
+    #if Input.is_action_just_pressed("fire"):
         fire()
     
     process_recoil(delta) 
@@ -108,45 +113,77 @@ func _process(delta: float) -> void:
     # Debug
     debug_camera_rotation.basis = Basis.from_euler(look_rotation)
     debug_recoil_rotation.basis = Basis.from_euler(look_rotation + recoil_rotation)
+    debug_last_rotation.basis = Basis.from_euler(look_rotation + last_recoil_rotation)
     debug_target_rotation.basis = Basis.from_euler(look_rotation + target_recoil_rotation)
+
+### Weapon ###
+var fire_rate = 10 # Shots per second
+var time_since_last_shot = 0.0 # seconds
 
 
 ### Recoil ###
 func process_recoil(delta: float) -> void:
     if target_recoil_rotation == Vector3.ZERO and recoil_rotation == Vector3.ZERO:
         return
-    # Move target recoil towards zero
-    var recoil_return_speed = 6 * delta #TODO: this value affects the recoil magnitude limit, very strange
     if can_fire:
+        # Move target recoil towards zero
+        last_recoil_rotation = Vector3.ZERO
+        var recoil_return_speed = 6 * delta
         target_recoil_rotation -= target_recoil_rotation * recoil_return_speed
-    # Move recoil rotation towards target recoil
-    var snappiness = delta * 24
-    recoil_rotation = lerp(recoil_rotation, target_recoil_rotation, snappiness)
+        recoil_rotation = lerp(recoil_rotation, target_recoil_rotation, recoil_return_speed)
+    else:
+        # Move recoil rotation towards target recoil
+        # TODO: Not sure which one feels better?
+        
+        var snappiness = delta * 24.0
+        recoil_rotation = lerp(recoil_rotation, target_recoil_rotation, snappiness)
+        
+        #recoil_rotation = recoil_rotation.lerp(target_recoil_rotation, 1.0 / fire_rate)
+        
+        #time_since_last_shot += delta
+        
+        #recoil_rotation = lerp(last_recoil_rotation, target_recoil_rotation, time_since_last_shot * fire_rate)
+        
+        #recoil_rotation = Tween.interpolate_value(
+            #last_recoil_rotation,
+            #target_recoil_rotation - last_recoil_rotation,
+            #time_since_last_shot,
+            #1.0 / fire_rate,
+            #Tween.TRANS_SINE,
+            #Tween.EASE_OUT)
 
 var can_fire : bool = true
 func fire():
     if not can_fire:
         return
     can_fire = false
+    time_since_last_shot = 0.0
     # TODO: spawn bullet
     recoil()
-    await get_tree().create_timer(0.1).timeout
+    await get_tree().create_timer(1.0/fire_rate).timeout
     can_fire = true
 
 func recoil():
     # Define direction based on unit circle
-    var direction = deg_to_rad(110)
+    var direction = deg_to_rad(90)
     var direction_stddev = deg_to_rad(12) # 10%
     direction = randfn(direction, direction_stddev)
-    var magnitude = 1.0 / 10.0
-    var magnitude_stddev = magnitude / 10.0 # 10%
-    magnitude = randfn(magnitude, magnitude_stddev)
+    
+    var horizontal_magnitude = 1.0 / 10.0
+    var horizontal_magnitude_stddev = horizontal_magnitude / 10.0 # 10%
+    horizontal_magnitude = randfn(horizontal_magnitude, horizontal_magnitude_stddev)
+    
+    var vertical_magnitude = 1.0 / 100.0
+    var vertical_magnitude_stddev = vertical_magnitude / 10.0 # 10%
+    vertical_magnitude = randfn(vertical_magnitude, vertical_magnitude_stddev)
+    
     # Determine recoil amount per-axis
-    var recoil_x = -cos(direction) * magnitude # negative since -Z is forward in Godot
-    var recoil_y = sin(direction) * magnitude
+    var recoil_x = -cos(direction) * horizontal_magnitude # negative since -Z is forward in Godot
+    var recoil_y = sin(direction) * vertical_magnitude
     var recoil_z = 0.0 # ignoring for now
     # Note: Basis uses order YXZ
     target_recoil_rotation += Vector3(recoil_y, recoil_x, recoil_z)
+    last_recoil_rotation = recoil_rotation
 
 
 ### Weapon ###
